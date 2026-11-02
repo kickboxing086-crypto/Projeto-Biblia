@@ -42,6 +42,8 @@ import {
 import { db, auth } from './firebase';
 import bibleLogo from './assets/images/bible_logo_alt_1793581602427.jpg';
 
+const OFFICIAL_URL = 'https://biblia-com-deus.vercel.app/';
+
 const BIBLE_VERSIONS = [
   { id: 'NVI', name: 'NVI', fullName: 'Nova Versão Internacional' },
   { id: 'ARA', name: 'ARA', fullName: 'Almeida Revista e Atualizada' },
@@ -139,7 +141,6 @@ const checkCredentials = (str: string) => {
 };
 
 export default function App() {
-  // Registered users database in state to prevent duplicate emails/usernames
   const [registeredUsers, setRegisteredUsers] = useState<Array<{ name: string; surname: string; username: string; email: string; birthDate: string; isAdmin: boolean }>>([
     { name: 'Samuel', surname: 'Silva', username: 'SamAdmin', email: 'Samuellsilvva02@gmail.com', birthDate: '1995-05-15', isAdmin: true }
   ]);
@@ -213,7 +214,6 @@ export default function App() {
   const [prayers, setPrayers] = useState<Array<{ id: number; name: string; text: string; count: number; prayed: boolean; answered: boolean; time: string }>>([]);
   const [newPrayerText, setNewPrayerText] = useState('');
 
-  // Suggestions state (managed in dedicated admin section)
   const [suggestions, setSuggestions] = useState<Array<{ id: number; name: string; text: string; date: string; status: string }>>([]);
   const [newSuggestionText, setNewSuggestionText] = useState('');
 
@@ -263,6 +263,34 @@ export default function App() {
     actionCallback();
   };
 
+  const handleShareVerse = (verseNum: number, verseText: string) => {
+    const shareText = `"${verseText}"\n— ${currentBook} ${currentChapter}:${verseNum} (${currentVersion})\n\nLeia na Bíblia Sagrada:\n${OFFICIAL_URL}`;
+    if (navigator.share) {
+      navigator.share({
+        title: `Bíblia Sagrada - ${currentBook} ${currentChapter}:${verseNum}`,
+        text: shareText,
+        url: OFFICIAL_URL,
+      }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(shareText);
+      showToast('Versículo copiado para compartilhamento!');
+    }
+  };
+
+  const handleShareApp = () => {
+    const shareText = `Conheça o aplicativo Bíblia Sagrada - Leitura da Palavra em múltiplas versões:\n${OFFICIAL_URL}`;
+    if (navigator.share) {
+      navigator.share({
+        title: 'Bíblia Sagrada',
+        text: shareText,
+        url: OFFICIAL_URL,
+      }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(OFFICIAL_URL);
+      showToast('Link do aplicativo copiado para compartilhamento!');
+    }
+  };
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (!loginIdentifier || !loginPassword) {
@@ -307,7 +335,6 @@ export default function App() {
       return;
     }
 
-    // Check if email or username already exists
     const emailExists = registeredUsers.some(u => u.email.toLowerCase() === regEmail.toLowerCase());
     const usernameExists = registeredUsers.some(u => u.username.toLowerCase() === regUsername.toLowerCase());
 
@@ -568,8 +595,22 @@ export default function App() {
                           currentHighlight ? HIGHLIGHT_COLORS.find(c => c.id === currentHighlight)?.bg : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
                         }`}
                       >
-                        <span className="text-[11px] font-bold text-red-600 mr-2 select-none">{verse.v}</span>
-                        <span className="font-serif text-slate-800 dark:text-slate-200">{verse.text}</span>
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <span className="text-[11px] font-bold text-red-600 mr-2 select-none">{verse.v}</span>
+                            <span className="font-serif text-slate-800 dark:text-slate-200">{verse.text}</span>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleShareVerse(verse.v, verse.text);
+                            }}
+                            className="p-1 text-slate-400 hover:text-red-600 transition-colors ml-2"
+                            title="Compartilhar Versículo"
+                          >
+                            <Share2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
 
                         {/* Highlight Palette Popup */}
                         {activeHighlightVerse === verse.v && (
@@ -1278,6 +1319,8 @@ export default function App() {
                           setIsSidebarOpen(false);
                           if (item.id === 'support_donor') {
                             setActiveTab('support');
+                          } else if (item.id === 'share') {
+                            handleShareApp();
                           } else {
                             setActiveModal(item.id as any);
                           }
@@ -1321,7 +1364,7 @@ export default function App() {
           </div>
         )}
 
-        {/* ADMIN PANEL MODAL (With dedicated suggestions section) */}
+        {/* ADMIN PANEL MODAL */}
         {activeModal === 'admin_panel' && user?.isAdmin && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setActiveModal('none')}></div>
@@ -1626,16 +1669,15 @@ export default function App() {
                     <Share2 className="w-6 h-6" />
                   </div>
                   <h4 className="font-bold text-sm text-slate-900 dark:text-white">Compartilhe a Bíblia Sagrada</h4>
-                  <p className="text-xs text-slate-500">Leve a Palavra a mais pessoas.</p>
+                  <p className="text-xs text-slate-500">Divulgue o link oficial: {OFFICIAL_URL}</p>
                   <button
                     onClick={() => {
-                      navigator.clipboard.writeText(window.location.href);
+                      handleShareApp();
                       setActiveModal('none');
-                      showToast('Link copiado!');
                     }}
                     className="w-full py-3 bg-red-600 text-white rounded-2xl font-bold text-xs shadow-lg"
                   >
-                    Copiar Link do Aplicativo
+                    Compartilhar Aplicativo
                   </button>
                 </div>
               )}
@@ -1701,6 +1743,9 @@ export default function App() {
                     <div className="text-center space-y-2">
                       <h4 className="font-bold text-base text-slate-900 dark:text-white">Bíblia Sagrada</h4>
                       <p className="leading-relaxed">{aboutText}</p>
+                      <div className="pt-2 text-[11px] font-bold text-red-600">
+                        {OFFICIAL_URL}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1716,10 +1761,10 @@ export default function App() {
                 </div>
               )}
 
-              {/* Suggestion Modal (Client submits suggestion) */}
+              {/* Suggestion Modal */}
               {activeModal === 'suggestion' && (
                 <div className="space-y-3 text-xs">
-                  <p className="text-slate-600 dark:text-slate-300">Envie sua sugestão de melhoria (será direcionada ao painel do administrador):</p>
+                  <p className="text-slate-600 dark:text-slate-300">Envie sua sugestão de melhoria:</p>
                   <textarea
                     rows={4}
                     placeholder="Escreva sua sugestão..."
@@ -1737,7 +1782,7 @@ export default function App() {
                         ]);
                         setNewSuggestionText('');
                         setActiveModal('none');
-                        showToast('Sugestão enviada com sucesso para a administração!');
+                        showToast('Sugestão enviada com sucesso!');
                       });
                     }}
                     className="w-full py-3 bg-red-600 text-white rounded-2xl font-bold text-xs shadow-lg hover:bg-red-700"
