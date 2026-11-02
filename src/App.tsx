@@ -37,9 +37,13 @@ import {
   Settings,
   Bell,
   DollarSign,
-  Pencil
+  Pencil,
+  Download,
+  Smartphone,
+  Play
 } from 'lucide-react';
 import { db, auth } from './firebase';
+import { usePWAInstall } from './usePWAInstall';
 import bibleLogo from './assets/images/bible_logo_alt_1793581602427.jpg';
 
 const OFFICIAL_URL = 'https://biblia-com-deus.vercel.app/';
@@ -154,6 +158,34 @@ export default function App() {
     birthDate?: string;
     isAdmin?: boolean;
   } | null>(null);
+
+  // PWA Native Installation
+  const { isInstallable, isInstalled, isIOS, install } = usePWAInstall();
+  const [showInstallModal, setShowInstallModal] = useState(false);
+
+  // Elegant Opening Splash Animation
+  const [showSplashScreen, setShowSplashScreen] = useState(true);
+  const [splashProgress, setSplashProgress] = useState(0);
+
+  useEffect(() => {
+    if (!showSplashScreen) return;
+    const interval = setInterval(() => {
+      setSplashProgress((prev) => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setTimeout(() => setShowSplashScreen(false), 450);
+          return 100;
+        }
+        return prev + 3;
+      });
+    }, 45);
+    return () => clearInterval(interval);
+  }, [showSplashScreen]);
+
+  const replaySplashScreen = () => {
+    setSplashProgress(0);
+    setShowSplashScreen(true);
+  };
 
   const [showLoginPromptModal, setShowLoginPromptModal] = useState(false);
   const [authView, setAuthView] = useState<'login' | 'register' | 'forgot'>('login');
@@ -291,6 +323,21 @@ export default function App() {
     }
   };
 
+  const handleNativeInstallClick = async () => {
+    if (isInstalled) {
+      showToast('O aplicativo já está instalado no seu celular!');
+      return;
+    }
+    if (isInstallable) {
+      const accepted = await install();
+      if (accepted) {
+        showToast('Instalação iniciada! Adicionado à tela de início.');
+      }
+    } else {
+      setShowInstallModal(true);
+    }
+  };
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (!loginIdentifier || !loginPassword) {
@@ -406,13 +453,91 @@ export default function App() {
   };
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'dark bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'} font-sans flex flex-col items-center justify-start select-none transition-colors duration-300`}>
+    <div className={`min-h-screen ${isDarkMode ? 'dark bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'} font-sans flex flex-col items-center justify-start select-none transition-colors duration-300 relative`}>
       
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-5 z-50 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-2.5 rounded-2xl shadow-2xl text-xs font-bold animate-in fade-in slide-in-from-top-4 duration-300 flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
           {toastMessage}
+        </div>
+      )}
+
+      {/* ELEGANT OPENING SPLASH ANIMATION */}
+      {showSplashScreen && (
+        <div 
+          onClick={() => setShowSplashScreen(false)}
+          className="fixed inset-0 z-[100] bg-gradient-to-b from-stone-950 via-red-950 to-stone-950 flex flex-col items-center justify-between p-8 text-white animate-in fade-in duration-500 cursor-pointer overflow-hidden"
+        >
+          {/* Ambient Golden Radial Light Rays */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,rgba(245,158,11,0.22)_0%,transparent_65%)] pointer-events-none animate-pulse"></div>
+
+          {/* Twinkling Divine Particles */}
+          <div className="absolute top-1/4 left-10 text-amber-300/40 animate-ping duration-1000">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div className="absolute top-1/3 right-12 text-amber-200/50 animate-pulse duration-700">
+            <Sparkles className="w-6 h-6" />
+          </div>
+          <div className="absolute bottom-1/3 left-14 text-amber-400/30 animate-pulse duration-1000">
+            <Sparkles className="w-4 h-4" />
+          </div>
+
+          <div className="w-full flex justify-end pt-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowSplashScreen(false);
+              }}
+              className="text-xs px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 backdrop-blur-md transition-all font-medium border border-white/10 flex items-center gap-1"
+            >
+              Pular ✕
+            </button>
+          </div>
+
+          {/* Centerpiece: Glowing Bible with Sacred Light */}
+          <div className="flex flex-col items-center text-center space-y-6 max-w-xs my-auto relative z-10">
+            <div className="relative">
+              {/* Golden Halo Glow */}
+              <div className="absolute -inset-4 bg-gradient-to-r from-amber-400/40 via-red-500/30 to-amber-400/40 rounded-full blur-xl animate-pulse"></div>
+              
+              <div className="relative w-28 h-28 rounded-3xl overflow-hidden shadow-2xl border-2 border-amber-400/40 bg-red-900 p-1 flex items-center justify-center transform transition-transform hover:scale-105 duration-300">
+                <img src={bibleLogo} alt="Logo Bíblia" className="w-full h-full object-cover rounded-2xl" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <span className="px-3 py-1 bg-amber-400/10 text-amber-300 border border-amber-400/30 rounded-full text-[10px] font-bold tracking-widest uppercase">
+                A Palavra Eterna
+              </span>
+              <h1 className="text-3xl font-serif font-extrabold tracking-tight bg-gradient-to-r from-amber-200 via-white to-amber-100 bg-clip-text text-transparent drop-shadow-md">
+                BÍBLIA SAGRADA
+              </h1>
+              <p className="text-xs text-amber-100/80 font-serif italic leading-relaxed pt-2">
+                "Lâmpada para os meus pés é tua palavra e luz para o meu caminho."
+              </p>
+              <span className="text-[11px] font-bold text-amber-400 tracking-wider">
+                — Salmos 119:105
+              </span>
+            </div>
+          </div>
+
+          {/* Elegant Loading & Progress */}
+          <div className="w-full max-w-xs space-y-3 pb-6 relative z-10 text-center">
+            <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden p-0.5 backdrop-blur-md">
+              <div 
+                className="bg-gradient-to-r from-amber-400 to-rose-400 h-full rounded-full transition-all duration-100 shadow-[0_0_10px_rgba(251,191,36,0.8)]"
+                style={{ width: `${splashProgress}%` }}
+              ></div>
+            </div>
+            <div className="flex justify-between items-center text-[10px] text-amber-200/60 font-medium px-1">
+              <span>Preparando Escrituras...</span>
+              <span>{splashProgress}%</span>
+            </div>
+            <p className="text-[11px] text-slate-400 hover:text-white transition-colors pt-2">
+              Toque para abrir a Palavra →
+            </p>
+          </div>
         </div>
       )}
 
@@ -442,6 +567,18 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Install Native App Button Header */}
+            {!isInstalled && (
+              <button
+                onClick={handleNativeInstallClick}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900 text-xs font-bold hover:bg-red-100 transition-all shadow-sm"
+                title="Instalar Aplicativo Nativo no Celular"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline text-[10px]">Instalar</span>
+              </button>
+            )}
+
             {/* Version Selector Dropdown */}
             <div className="relative">
               <button 
@@ -988,6 +1125,103 @@ export default function App() {
           })}
         </nav>
 
+        {/* NATIVE APP INSTALL MODAL */}
+        {showInstallModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowInstallModal(false)}></div>
+            <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-[32px] shadow-2xl p-6 z-10 space-y-4">
+              <div className="flex justify-between items-start pb-2 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl overflow-hidden shadow bg-red-600 flex items-center justify-center">
+                    <img src={bibleLogo} alt="Logo" className="w-full h-full object-cover" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm text-slate-900 dark:text-white">Instalar Aplicativo Nativo</h3>
+                    <span className="text-[10px] text-slate-400">Bíblia Sagrada no seu Celular</span>
+                  </div>
+                </div>
+                <button onClick={() => setShowInstallModal(false)} className="p-1 rounded-xl text-slate-400 hover:bg-slate-100">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {isInstallable ? (
+                <div className="space-y-3 text-center py-2">
+                  <p className="text-xs text-slate-600 dark:text-slate-300">
+                    Instale a Bíblia Sagrada na sua tela inicial para leitura rápida, offline e experiência nativa completa!
+                  </p>
+                  <button
+                    onClick={async () => {
+                      const res = await install();
+                      if (res) {
+                        setShowInstallModal(false);
+                        showToast('Aplicativo instalado com sucesso!');
+                      }
+                    }}
+                    className="w-full py-3 bg-red-600 text-white rounded-2xl font-bold text-xs shadow-lg hover:bg-red-700 flex items-center justify-center gap-2"
+                  >
+                    <Download className="w-4 h-4" /> Instalar Aplicativo Agora
+                  </button>
+                </div>
+              ) : isIOS ? (
+                /* iOS Safari instructions */
+                <div className="space-y-3 text-xs text-slate-700 dark:text-slate-300 py-1">
+                  <p className="text-slate-500 text-[11px]">Para instalar no seu iPhone ou iPad:</p>
+                  
+                  <div className="space-y-2.5 bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 text-[11px]">
+                    <div className="flex items-start gap-2.5">
+                      <span className="w-5 h-5 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold text-[10px] flex-shrink-0">1</span>
+                      <p>Toque no ícone de <strong>Compartilhar</strong> (quadrado com seta para cima) na barra inferior do Safari.</p>
+                    </div>
+                    <div className="flex items-start gap-2.5">
+                      <span className="w-5 h-5 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold text-[10px] flex-shrink-0">2</span>
+                      <p>Role as opções para baixo e toque em <strong>"Adicionar à Tela de Início"</strong> (+).</p>
+                    </div>
+                    <div className="flex items-start gap-2.5">
+                      <span className="w-5 h-5 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold text-[10px] flex-shrink-0">3</span>
+                      <p>Toque em <strong>"Adicionar"</strong> no canto superior direito.</p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setShowInstallModal(false)}
+                    className="w-full py-2.5 bg-red-600 text-white rounded-xl font-bold text-xs shadow hover:bg-red-700"
+                  >
+                    Entendi
+                  </button>
+                </div>
+              ) : (
+                /* Android / Chrome standard instructions */
+                <div className="space-y-3 text-xs text-slate-700 dark:text-slate-300 py-1">
+                  <p className="text-slate-500 text-[11px]">Para instalar no seu dispositivo Android:</p>
+                  
+                  <div className="space-y-2.5 bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 text-[11px]">
+                    <div className="flex items-start gap-2.5">
+                      <span className="w-5 h-5 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold text-[10px] flex-shrink-0">1</span>
+                      <p>Toque nos três pontinhos <strong>(⋮)</strong> no canto superior direito do navegador Chrome.</p>
+                    </div>
+                    <div className="flex items-start gap-2.5">
+                      <span className="w-5 h-5 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold text-[10px] flex-shrink-0">2</span>
+                      <p>Toque em <strong>"Instalar aplicativo"</strong> ou <strong>"Adicionar à tela inicial"</strong>.</p>
+                    </div>
+                    <div className="flex items-start gap-2.5">
+                      <span className="w-5 h-5 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold text-[10px] flex-shrink-0">3</span>
+                      <p>Confirme a instalação para ter o ícone nativo no seu celular.</p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setShowInstallModal(false)}
+                    className="w-full py-2.5 bg-red-600 text-white rounded-xl font-bold text-xs shadow hover:bg-red-700"
+                  >
+                    Entendi
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* LOGIN PROMPT MODAL */}
         {showLoginPromptModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1279,8 +1513,8 @@ export default function App() {
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)}></div>
             <div className="relative w-80 max-w-full bg-white dark:bg-slate-900 h-full shadow-2xl p-6 flex flex-col justify-between z-10 animate-in slide-in-from-left duration-300 overflow-y-auto">
               
-              <div className="space-y-6">
-                <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="space-y-5">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-2xl overflow-hidden shadow-lg border border-red-500/30 flex items-center justify-center bg-red-600">
                       <img src={bibleLogo} alt="Logo" className="w-full h-full object-cover" />
@@ -1295,12 +1529,42 @@ export default function App() {
                   </button>
                 </div>
 
+                {/* Featured PWA Native App Install Banner */}
+                <div className="p-3.5 bg-gradient-to-r from-red-600 to-rose-600 rounded-2xl text-white shadow-lg space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Smartphone className="w-4 h-4 text-amber-300" />
+                      <span className="font-bold text-xs">Instalar Aplicativo</span>
+                    </div>
+                    <span className="text-[9px] bg-white/20 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                      {isInstalled ? 'Instalado' : 'Nativo'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-red-100 leading-tight">
+                    {isInstalled 
+                      ? 'Aplicativo instalado! Acesse diretamente pela sua tela de início.'
+                      : 'Tenha o app oficial na tela de início do seu celular para leitura rápida e offline.'}
+                  </p>
+                  <button
+                    onClick={() => {
+                      setIsSidebarOpen(false);
+                      handleNativeInstallClick();
+                    }}
+                    className="w-full py-2 bg-white text-red-600 rounded-xl font-bold text-xs shadow hover:bg-red-50 flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    {isInstalled ? 'Abrir no Celular ✓' : 'Instalar no Celular'}
+                  </button>
+                </div>
+
                 {/* Sidebar Options */}
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   {[
                     { id: 'marked', label: 'Versículos Marcados', icon: Bookmark },
                     { id: 'search', label: 'Pesquisar Versículos', icon: Search },
                     { id: 'progress', label: 'Progresso de Leitura', icon: BookMarked },
+                    { id: 'install_app', label: 'Instalar Aplicativo Nativo', icon: Smartphone },
+                    { id: 'replay_splash', label: 'Animação de Abertura', icon: Sparkles },
                     { id: 'settings', label: 'Configurações', icon: Settings },
                     { id: 'novidades', label: 'Novidades', icon: Bell },
                     { id: 'support_donor', label: 'Seja Um Apoiador', icon: DollarSign },
@@ -1321,11 +1585,15 @@ export default function App() {
                             setActiveTab('support');
                           } else if (item.id === 'share') {
                             handleShareApp();
+                          } else if (item.id === 'install_app') {
+                            handleNativeInstallClick();
+                          } else if (item.id === 'replay_splash') {
+                            replaySplashScreen();
                           } else {
                             setActiveModal(item.id as any);
                           }
                         }}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-600 transition-colors"
+                        className="w-full flex items-center gap-3 px-3 py-2 rounded-2xl text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-600 transition-colors"
                       >
                         <Icon className="w-4 h-4 text-slate-400" />
                         {item.label}
@@ -1335,7 +1603,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 text-center space-y-2">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 text-center space-y-2">
                 {user ? (
                   <button 
                     onClick={() => {
